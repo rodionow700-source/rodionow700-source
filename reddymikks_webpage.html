@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Simple LP Solver</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input { width: 60px; }
+  </style>
+</head>
+<body>
+<h2>Linear Programming </h2>
+
+<p>Max Z = <input id="a" type="number" step="any"> * x1 +
+          <input id="b" type="number" step="any"> * x2</p>
+
+<h3>Constraints (fixed 2)</h3>
+<p>
+  <input id="c1x1" type="number" step="any"> x1 +
+  <input id="c1x2" type="number" step="any"> x2 ≤
+  <input id="c1s" type="number" step="any">
+</p>
+<p>
+  <input id="c2x1" type="number" step="any"> x1 +
+  <input id="c2x2" type="number" step="any"> x2 ≤
+  <input id="c2s" type="number" step="any">
+</p>
+
+<button onclick="solve()">Solve</button>
+<p id="res"></p>
+<canvas id="g" width="500" height="350"></canvas>
+
+<script>
+function solve(){
+  const a = +document.getElementById('a').value;
+  const b = +document.getElementById('b').value;
+
+  const C = [
+    [+c1x1.value, +c1x2.value, +c1s.value],
+    [+c2x1.value, +c2x2.value, +c2s.value]
+  ];
+
+  const pts = [[0,0]];
+
+  const det = C[0][0]*C[1][1] - C[1][0]*C[0][1];
+  if(Math.abs(det)>1e-9){
+    const x = (C[0][2]*C[1][1] - C[1][2]*C[0][1]) / det;
+    const y = (C[0][0]*C[1][2] - C[1][0]*C[0][2]) / det;
+    if(x>=0 && y>=0) pts.push([x,y]);
+  }
+
+  C.forEach(c=>{
+    if(c[2]/c[1] >= 0) pts.push([0, c[2]/c[1]]);
+    if(c[2]/c[0] >= 0) pts.push([c[2]/c[0], 0]);
+  });
+
+  const feas = pts.filter(p => C.every(c => c[0]*p[0] + c[1]*p[1] <= c[2]+1e-9));
+  if(!feas.length){ res.innerText = "No solution"; return; }
+
+  let best = feas[0], val = a*best[0]+b*best[1];
+  feas.forEach(p=>{ let v=a*p[0]+b*p[1]; if(v>val){val=v; best=p;} });
+
+  res.innerText = `x1=${best[0].toFixed(2)}, x2=${best[1].toFixed(2)}`;
+
+  draw(C, best);
+}
+
+function draw(C, best){
+  new Chart(document.getElementById('g'),{
+    type:'scatter',
+    data:{ datasets:[
+      ...C.map((c,i)=>({label:`C${i+1}`, data:[{x:0,y:c[2]/c[1]},{x:c[2]/c[0],y:0}], borderWidth:1, showLine:true})),
+      {label:'Opt', data:[{x:best[0],y:best[1]}], pointRadius:6}
+    ]},
+    options:{scales:{x:{min:0},y:{min:0}}}
+  });
+}
+</script>
+
+</body>
+</html>
